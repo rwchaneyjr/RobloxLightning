@@ -2,17 +2,14 @@
   "name": "Lightning2",
   "tree": {
     "$className": "DataModel",
-
-    "ReplicatedStorage": {
-      "$path": "src/shared"
+    "StarterPack": {
+      "$path": "src/starterpack"
     },
-
     "ServerScriptService": {
       "$path": "src/server"
     },
-
-    "StarterPack": {
-      "$path": "src/starterpack"
+    "ReplicatedStorage": {
+      "$path": "src/shared"
     }
   }
 }

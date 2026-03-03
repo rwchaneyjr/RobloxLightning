@@ -1,0 +1,1 @@
+{"version":"2.0.0","tasks":[{"label":"Rojo Build","type":"shell","command":"rojo build -o Lightning2.rbxlx","group":{"kind":"build","isDefault":true},"presentation":{"reveal":"always"}}]}

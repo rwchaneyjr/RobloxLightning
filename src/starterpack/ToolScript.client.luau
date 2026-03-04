@@ -9,6 +9,7 @@ local player = game.Players.LocalPlayer
 local mouse
 
 local UIS = game:GetService("UserInputService")
+local Debris = game:GetService("Debris")
 
 local equipped = false
 local cooldown = false
@@ -16,10 +17,6 @@ local cooldown = false
 -- fire rate limiter
 local FIRE_RATE_SECONDS = 0.10
 
-
--------------------------------------------------
--- EQUIP / UNEQUIP
--------------------------------------------------
 
 tool.Equipped:Connect(function()
 	equipped = true
@@ -35,7 +32,7 @@ end)
 
 
 -------------------------------------------------
--- FIREBALL SPAWN + MOVE
+-- FIREBALL
 -------------------------------------------------
 
 local function spawnAndMoveFireball(origin, direction)
@@ -46,11 +43,16 @@ local function spawnAndMoveFireball(origin, direction)
 	fireball.Size = Vector3.new(2,2,2)
 	fireball.Material = Enum.Material.Neon
 	fireball.Color = Color3.fromRGB(255,120,0)
-	fireball.Anchored = true
+	fireball.Anchored = false
 	fireball.CanCollide = false
 	fireball.CFrame = CFrame.new(origin)
 	fireball.Parent = workspace
 
+	-- move forward
+	fireball.AssemblyLinearVelocity = direction * 120
+
+	-- remove fireball if it misses
+	Debris:AddItem(fireball,5)
 
 	-------------------------------------------------
 	-- HIT DETECTION
@@ -63,20 +65,26 @@ local function spawnAndMoveFireball(origin, direction)
 		if alreadyHit then return end
 		alreadyHit = true
 
+		-- ignore player
 		if player.Character and hit:IsDescendantOf(player.Character) then
 			return
 		end
 
 		if hit:IsA("BasePart") then
 
+			print("Fireball hit:", hit.Name)
+
+			-- change color
 			hit.Color = Color3.fromRGB(255,60,0)
 			hit.Material = Enum.Material.Neon
 
+			-- add fire
 			local fire = Instance.new("Fire")
 			fire.Size = 12
 			fire.Heat = 10
 			fire.Parent = hit
 
+			-- destroy object after 3 seconds
 			task.delay(3,function()
 				if hit and hit.Parent then
 					hit:Destroy()
@@ -85,41 +93,15 @@ local function spawnAndMoveFireball(origin, direction)
 
 		end
 
-		if fireball and fireball.Parent then
-			fireball:Destroy()
-		end
+		fireball:Destroy()
 
 	end)
-
-
-	-------------------------------------------------
-	-- FIREBALL MOVEMENT
-	-------------------------------------------------
-
-	local speed = 140
-	local step = 0.03
-	local lifeSteps = 120
-
-	for i = 1, lifeSteps do
-
-		if not fireball.Parent then
-			return
-		end
-
-		fireball.Position += direction * speed * step
-		task.wait(step)
-
-	end
-
-	if fireball.Parent then
-		fireball:Destroy()
-	end
 
 end
 
 
 -------------------------------------------------
--- SHOOT FUNCTION
+-- SHOOT FIREBALL
 -------------------------------------------------
 
 local function shootFireball()
@@ -128,7 +110,6 @@ local function shootFireball()
 	cooldown = true
 
 	local handle = tool:FindFirstChild("Handle")
-
 	if not handle then
 		warn("No Handle found")
 		cooldown = false
@@ -148,7 +129,7 @@ end
 
 
 -------------------------------------------------
--- RIGHT CLICK INPUT
+-- RIGHT CLICK TO FIRE
 -------------------------------------------------
 
 UIS.InputBegan:Connect(function(input,gameProcessed)

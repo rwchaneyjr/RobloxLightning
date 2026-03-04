@@ -1,6 +1,4 @@
 -- Fireball ToolScript (LocalScript)
--- Put this LocalScript INSIDE the Tool
--- StarterPack > LightningShooter (Tool) > ToolScript (LocalScript)
 
 print("Fireball tool running")
 
@@ -16,6 +14,9 @@ local cooldown = false
 
 -- fire rate limiter
 local FIRE_RATE_SECONDS = 0.10
+
+-- how long the hit object "burns" before disappearing
+local BURN_SECONDS = 3
 
 
 tool.Equipped:Connect(function()
@@ -48,16 +49,23 @@ local function spawnAndMoveFireball(origin, direction)
 	fireball.CFrame = CFrame.new(origin)
 	fireball.Parent = workspace
 
-	-- move forward
-	fireball.AssemblyLinearVelocity = direction * 120
+	-------------------------------------------------
+	-- FLAMES ON THE FIREBALL
+	-------------------------------------------------
+	local flame = Instance.new("Fire")
+	flame.Size = 8
+	flame.Heat = 8
+	flame.Parent = fireball
 
-	-- remove fireball if it misses
-	Debris:AddItem(fireball,5)
+	-------------------------------------------------
+	-- STRONG FORCE
+	-------------------------------------------------
+	fireball.AssemblyLinearVelocity = direction * 250
+	Debris:AddItem(fireball, 6)
 
 	-------------------------------------------------
 	-- HIT DETECTION
 	-------------------------------------------------
-
 	local alreadyHit = false
 
 	fireball.Touched:Connect(function(hit)
@@ -65,27 +73,60 @@ local function spawnAndMoveFireball(origin, direction)
 		if alreadyHit then return end
 		alreadyHit = true
 
-		-- ignore player
+		-- don't hit your own character
 		if player.Character and hit:IsDescendantOf(player.Character) then
 			return
 		end
 
+		-------------------------------------------------
+		-- SMOKE PUFF AT IMPACT (quick cloud)
+		-------------------------------------------------
+		local puffPart = Instance.new("Part")
+		puffPart.Anchored = true
+		puffPart.CanCollide = false
+		puffPart.Transparency = 1
+		puffPart.Size = Vector3.new(0.2, 0.2, 0.2)
+		puffPart.Position = fireball.Position
+		puffPart.Parent = workspace
+
+		local puffSmoke = Instance.new("Smoke")
+		puffSmoke.Size = 10
+		puffSmoke.RiseVelocity = 6
+		puffSmoke.Opacity = 0.5
+		puffSmoke.Parent = puffPart
+
+		Debris:AddItem(puffPart, 2)
+
+		-------------------------------------------------
+		-- FLAMES + SMOKE ON THE OBJECT YOU HIT
+		-------------------------------------------------
 		if hit:IsA("BasePart") then
 
-			print("Fireball hit:", hit.Name)
-
-			-- change color
-			hit.Color = Color3.fromRGB(255,60,0)
+			-- make the hit part look like it's burning
+			hit.Color = Color3.fromRGB(255, 60, 0)
 			hit.Material = Enum.Material.Neon
 
-			-- add fire
-			local fire = Instance.new("Fire")
-			fire.Size = 12
-			fire.Heat = 10
-			fire.Parent = hit
+			-- flames on object
+			local hitFire = Instance.new("Fire")
+			hitFire.Size = 18
+			hitFire.Heat = 15
+			hitFire.Parent = hit
 
-			-- destroy object after 3 seconds
-			task.delay(3,function()
+			-- smoke on object
+			local hitSmoke = Instance.new("Smoke")
+			hitSmoke.Size = 14
+			hitSmoke.RiseVelocity = 8
+			hitSmoke.Opacity = 0.4
+			hitSmoke.Parent = hit
+
+			-- (optional) fade effects right before destroy
+			task.delay(BURN_SECONDS - 0.3, function()
+				if hitFire then hitFire.Enabled = false end
+				if hitSmoke then hitSmoke.Enabled = false end
+			end)
+
+			-- destroy the hit object
+			task.delay(BURN_SECONDS, function()
 				if hit and hit.Parent then
 					hit:Destroy()
 				end
@@ -93,6 +134,7 @@ local function spawnAndMoveFireball(origin, direction)
 
 		end
 
+		-- remove fireball right away on hit
 		fireball:Destroy()
 
 	end)
@@ -116,12 +158,12 @@ local function shootFireball()
 		return
 	end
 
-	local origin = handle.Position + handle.CFrame.LookVector * 2
+	local origin = handle.Position + handle.CFrame.LookVector * 3
 	local direction = handle.CFrame.LookVector
 
 	task.spawn(spawnAndMoveFireball, origin, direction)
 
-	task.delay(FIRE_RATE_SECONDS,function()
+	task.delay(FIRE_RATE_SECONDS, function()
 		cooldown = false
 	end)
 
@@ -132,7 +174,7 @@ end
 -- RIGHT CLICK TO FIRE
 -------------------------------------------------
 
-UIS.InputBegan:Connect(function(input,gameProcessed)
+UIS.InputBegan:Connect(function(input, gameProcessed)
 
 	if gameProcessed then return end
 	if not equipped then return end
